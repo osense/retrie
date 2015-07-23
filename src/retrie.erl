@@ -2,14 +2,22 @@
 
 -export([new/0, insert/3, lookup/2]).
 
+-type tree() :: {integer(), integer(), value(), array:array(tree())} | {key(), value()}.
 
+-type key() :: binary().
+-type value() :: term().
+
+
+-spec new() -> tree().
 new() ->
     {<<>>, undefined}.
 
 
+-spec insert(key(), value(), tree()) -> tree().
 insert(<<H:8, T/binary>>, Value, Tree) ->
     insert1(H, T, Value, Tree).
 
+-spec insert1(integer(), key(), value(), tree()) -> tree().
 insert1(H, <<>>, Value, {Lo, Hi, NodeVal, Array}) ->
     NewTuple = case array:get(H, Array) of
         {Lo1, Hi1, _, Array1} -> {Lo1, Hi1, Value, Array1};
@@ -28,11 +36,13 @@ insert1(H, T, Value, _) ->
     {<<H:8, T/binary>>, Value}.
 
 
+-spec lookup(key(), tree()) -> value().
 lookup(<<H:8, T/binary>>, Tree) ->
     lookup1(H, T, Tree);
 lookup(<<>>, {_, _, Value, _}) ->
     Value.
 
+-spec lookup1(integer(), key(), tree()) -> value().
 lookup1(H, T, {Lo, Hi, _, Array}) when H >= Lo, H =< Hi ->
     lookup(T, array:get(H, Array));
 lookup1(H, T, {<<H:8, T/binary>>, Value}) ->
