@@ -36,7 +36,5 @@ lookup(<<>>, {_, _, Value, _}) ->
 lookup1(H, T, {Lo, Hi, _, Array}) when H >= Lo, H =< Hi ->
     lookup(T, array:get(H, Array));
 lookup1(H, T, {<<H:8, T/binary>>, Value}) ->
-    Value;
-lookup1(_, _, _) ->
-    undefined.
+    Value.
 
