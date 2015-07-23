@@ -1,0 +1,14 @@
+{application, retrie,
+ [
+  {description, "An Erlang retrie library"},
+  {vsn, "1"},
+  {modules, [
+             retrie
+            ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
