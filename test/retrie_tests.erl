@@ -20,4 +20,5 @@ lookup_test() ->
     ?assertEqual(val5, retrie:lookup(<<"a">>, T8)),
     ?assertEqual(val6, retrie:lookup(<<"b">>, T8)),
     ?assertEqual(val7, retrie:lookup(<<"abcabc">>, T8)),
-    ?assertEqual(none, retrie:lookup(<<"ab">>, T8)).
+    ?assertEqual(undefined, retrie:lookup(<<"ab">>, T8)),
+    ?assertEqual(undefined, retrie:lookup(<<"xb">>, T8)).

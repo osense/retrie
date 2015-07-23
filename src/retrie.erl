@@ -30,7 +30,7 @@ insert1(H, T, Value, {Lo, Hi, NodeVal, Array}) ->
     NewTuple = insert(T, Value, array:get(H, Array)),
     {min(H, Lo), max(H, Hi), NodeVal, array:set(H, NewTuple, Array)};
 insert1(H, T, Value, {<<NH:8, NT/binary>>, NodeVal}) ->
-    NewNode = {NH, NH, none, array:set(NH, {NT, NodeVal}, array:new())},
+    NewNode = {NH, NH, undefined, array:set(NH, {NT, NodeVal}, array:new())},
     insert1(H, T, Value, NewNode);
 insert1(H, T, Value, _) ->
     {<<H:8, T/binary>>, Value}.
@@ -46,5 +46,7 @@ lookup(<<>>, {_, _, Value, _}) ->
 lookup1(H, T, {Lo, Hi, _, Array}) when H >= Lo, H =< Hi ->
     lookup(T, array:get(H, Array));
 lookup1(H, T, {<<H:8, T/binary>>, Value}) ->
-    Value.
+    Value;
+lookup1(_, _, _) ->
+    undefined.
 
