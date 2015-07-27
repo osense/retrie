@@ -2,7 +2,7 @@
 
 -export([new/0, insert/3, lookup/2]).
 
--type tree() :: {integer(), integer(), value(), array:array(tree())} | {key(), value()}.
+-type tree() :: {integer(), integer(), value(), array2:array2()} | {key(), value()}.
 
 -type key() :: string().
 -type value() :: term().
@@ -10,7 +10,7 @@
 
 -spec new() -> tree().
 new() ->
-    {<<>>, undefined}.
+    {"", undefined}.
 
 
 -spec insert(key(), value(), tree()) -> tree().
@@ -19,18 +19,18 @@ insert([H | T], Value, Tree) ->
 
 -spec insert1(integer(), key(), value(), tree()) -> tree().
 insert1(H, [], Value, {Lo, Hi, NodeVal, Array}) ->
-    NewTuple = case array:get(H, Array) of
+    NewTuple = case array2:get(H, Array) of
         {Lo1, Hi1, _, Array1} -> {Lo1, Hi1, Value, Array1};
         {Key1, Value1} ->
-            NewNode = {H, H, Value, array:new()},
+            NewNode = {H, H, Value, array2:new()},
             insert(Key1, Value1, NewNode)
     end,
-    {Lo, Hi, NodeVal, array:set(H, NewTuple, Array)};
+    {Lo, Hi, NodeVal, array2:set(H, NewTuple, Array)};
 insert1(H, T, Value, {Lo, Hi, NodeVal, Array}) ->
-    NewTuple = insert(T, Value, array:get(H, Array)),
-    {min(H, Lo), max(H, Hi), NodeVal, array:set(H, NewTuple, Array)};
+    NewTuple = insert(T, Value, array2:get(H, Array)),
+    {min(H, Lo), max(H, Hi), NodeVal, array2:set(H, NewTuple, Array)};
 insert1(H, T, Value, {[NH | NT], NodeVal}) ->
-    NewNode = {NH, NH, undefined, array:set(NH, {NT, NodeVal}, array:new())},
+    NewNode = {NH, NH, undefined, array2:set(NH, {NT, NodeVal}, array2:new())},
     insert1(H, T, Value, NewNode);
 insert1(H, T, Value, _) ->
     {[H | T], Value}.
@@ -44,7 +44,7 @@ lookup([], {_, _, Value, _}) ->
 
 -spec lookup1(integer(), key(), tree()) -> value().
 lookup1(H, T, {Lo, Hi, _, Array}) when H >= Lo, H =< Hi ->
-    lookup(T, array:get(H, Array));
+    lookup(T, array2:get(H, Array));
 lookup1(H, T, {[H | T], Value}) ->
     Value;
 lookup1(_, _, _) ->
