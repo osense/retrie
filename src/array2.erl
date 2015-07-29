@@ -26,7 +26,7 @@ set(N, Value, {}) ->
     {N, N, {Value}}.
 
 make_initlist(Start, Data) ->
-    lists:zip([X || X <- lists:seq(Start, Start + tuple_size(Data) - 1)], tuple_to_list(Data)).
+    lists:zip(lists:seq(Start, Start + tuple_size(Data) - 1), tuple_to_list(Data)).
 
 
 -spec get(idx(), array2()) -> term().
