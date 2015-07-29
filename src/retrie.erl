@@ -43,8 +43,11 @@ lookup([], {_, _, Value, _}) ->
     Value.
 
 -spec lookup1(integer(), key(), tree()) -> value().
-lookup1(H, T, {Lo, Hi, _, Array}) when H >= Lo, H =< Hi ->
-    lookup(T, array2:get(H, Array));
+lookup1(H, T, {_, _, _, Array}) ->
+    case array2:get(H, Array) of
+        undefined -> undefined;
+        Tree -> lookup(T, Tree)
+    end;
 lookup1(H, T, {[H | T], Value}) ->
     Value;
 lookup1(_, _, _) ->
