@@ -23,12 +23,16 @@ insert1(H, [], Value, {Lo, Hi, NodeVal, Array}) ->
         {Lo1, Hi1, _, Array1} -> {Lo1, Hi1, Value, Array1};
         {Key1, Value1} ->
             NewNode = {H, H, Value, array2:new()},
-            insert(Key1, Value1, NewNode)
+            insert(Key1, Value1, NewNode);
+        undefined -> {H, H, Value, array2:new()}
     end,
     {Lo, Hi, NodeVal, array2:set(H, NewTuple, Array)};
 insert1(H, T, Value, {Lo, Hi, NodeVal, Array}) ->
     NewTuple = insert(T, Value, array2:get(H, Array)),
     {min(H, Lo), max(H, Hi), NodeVal, array2:set(H, NewTuple, Array)};
+insert1(H, T, Value, {[NH], NodeVal}) ->
+    NewNode = {NH, NH, undefined, array2:set(NH, {NH, NH, NodeVal, array2:new()}, array2:new())},
+    insert1(H, T, Value, NewNode);
 insert1(H, T, Value, {[NH | NT], NodeVal}) ->
     NewNode = {NH, NH, undefined, array2:set(NH, {NT, NodeVal}, array2:new())},
     insert1(H, T, Value, NewNode);
