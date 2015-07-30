@@ -10,7 +10,7 @@
 
 -spec new() -> tree().
 new() ->
-    {leaf, "", undefined}.
+    {undefined, array2:new()}.
 
 
 -spec insert(key(), value(), tree()) -> tree().
@@ -20,7 +20,7 @@ insert([H | T], Value, Tree) ->
 -spec insert1(integer(), key(), value(), tree()) -> tree().
 insert1(H, [], Value, {NodeVal, Array}) ->
     NewTuple = case array2:get(H, Array) of
-        {_, Array1} when is_tuple(Array) -> {Value, Array1};
+        {_, Array1} -> {Value, Array1};
         {leaf, Key1, Value1} ->
             NewNode = {Value, array2:new()},
             insert(Key1, Value1, NewNode);
@@ -30,11 +30,8 @@ insert1(H, [], Value, {NodeVal, Array}) ->
 insert1(H, T, Value, {NodeVal, Array}) ->
     NewTuple = insert(T, Value, array2:get(H, Array)),
     {NodeVal, array2:set(H, NewTuple, Array)};
-insert1(H, T, Value, {leaf, [NH], NodeVal}) ->
-    NewNode = {undefined, array2:set(NH, {NodeVal, array2:new()}, array2:new())},
-    insert1(H, T, Value, NewNode);
-insert1(H, T, Value, {leaf, [NH | NT], NodeVal}) ->
-    NewNode = {undefined, array2:set(NH, {leaf, NT, NodeVal}, array2:new())},
+insert1(H, T, Value, {leaf, NodeKey, NodeVal}) ->
+    NewNode = insert(NodeKey, NodeVal, new()),
     insert1(H, T, Value, NewNode);
 insert1(H, T, Value, _) ->
     {leaf, [H | T], Value}.
