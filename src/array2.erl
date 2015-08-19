@@ -1,7 +1,7 @@
 -module(array2).
 -author("osense").
 
--export([new/0, set/3, get/2]).
+-export([new/0, set/3, get/2, to_list/1, to_orddict/1]).
 -export_type([array2/0]).
 
 -define(DEFAULT_VAL, undefined).
@@ -34,3 +34,25 @@ get(N, {Start, End, Data}) when N >= Start, N =< End ->
     element(N - Start + 1, Data);
 get(_, _) ->
     ?DEFAULT_VAL.
+
+
+-spec to_list(array2()) -> list().
+to_list({_, _, Data}) ->
+    lists:filter(fun(Elem) -> Elem /= ?DEFAULT_VAL end, tuple_to_list(Data));
+to_list({}) ->
+    [].
+
+
+-spec to_orddict(array2()) -> [{pos_integer(), term()}].
+to_orddict({Start, End, Data}) ->
+    to_orddict1(Start, Start, End, Data, []);
+to_orddict({}) ->
+    [].
+
+to_orddict1(_, Pos, End, _, Acc) when Pos > End ->
+    lists:reverse(Acc);
+to_orddict1(Start, Pos, End, Data, Acc) ->
+    case element(Pos - Start + 1, Data) of
+        ?DEFAULT_VAL -> to_orddict1(Start, Pos + 1, End, Data, Acc);
+        Val -> to_orddict1(Start, Pos + 1, End, Data, [{Pos, Val} | Acc])
+    end.
