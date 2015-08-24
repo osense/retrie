@@ -53,9 +53,7 @@ lookup1(H, T, {_, Array, _}) ->
         Tree -> lookup(T, Tree)
     end;
 lookup1(H, T, {<<H, T/binary>>, Value}) ->
-    Value;
-lookup1(_, _, _) ->
-    undefined.
+    Value.
 
 
 %%% Functions for working with patterns.
@@ -99,7 +97,6 @@ lookup_match1(_, _, _) ->
 
 lookup_match_patterns(Input, [{Pattern, Tree} | Rest], AccMatches) ->
     case lookup_match_patterns_loop(Input, Pattern, Tree, <<>>) of
-        nomatch when Rest == [] -> nomatch;
         nomatch -> lookup_match1(Input, Rest, AccMatches);
         Matches -> Matches ++ AccMatches
     end.

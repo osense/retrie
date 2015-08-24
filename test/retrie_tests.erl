@@ -25,9 +25,12 @@ lookup_test() ->
     ?assertEqual(undefined, retrie:lookup(<<"xb">>, T8)).
 
 match_test() ->
-    T1 = retrie:insert_pattern(<<"%{STRING:name}, hello!">>, retrie:new()),
+    T0 = retrie:insert(<<"Hello">>, val, retrie:new()),
+    T1 = retrie:insert_pattern(<<"%{STRING:name}, hello!">>, T0),
     ?assertEqual([{<<"name">>, <<"World">>}], retrie:lookup_match(<<"World, hello!">>, T1)),
     ?assertEqual(nomatch, retrie:lookup_match(<<"World, World!">>, T1)),
+    T11 = retrie:insert_pattern(<<"Hello, %{STRING:name}">>, T1),
+    ?assertEqual([{<<"name">>, <<"hello!">>}], retrie:lookup_match(<<"Hello, hello!">>, T11)),
     T2 = retrie:insert_pattern(<<"Hello %{STRING:name} id: %{INT:id}">>, T1),
     ?assertEqual([{<<"name">>, <<"Foo">>}, {<<"id">>, 34}], retrie:lookup_match(<<"Hello Foo id: 34">>, T2)),
     T3 = retrie:insert_pattern(<<"Hello %{STRING:name} %{BOOL:b}">>, T2),
