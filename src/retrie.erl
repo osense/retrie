@@ -37,11 +37,11 @@ insert1(H, T, Value, {NodeKey, NodeVal}) ->
     NewNode = insert(NodeKey, NodeVal, new()),
     insert1(H, T, Value, NewNode);
 insert1(H, T, Value, _) ->
-    {<<H, T/binary>>, Value}.
+    {<<H, T/bits>>, Value}.
 
 
 -spec lookup(key(), tree()) -> value().
-lookup(<<H, T/binary>>, Tree) ->
+lookup(<<H, T/bits>>, Tree) ->
     lookup1(H, T, Tree);
 lookup(<<>>, {Value, _, _}) ->
     Value.
@@ -52,7 +52,7 @@ lookup1(H, T, {_, Array, _}) ->
         undefined -> undefined;
         Tree -> lookup(T, Tree)
     end;
-lookup1(H, T, {<<H, T/binary>>, Value}) ->
+lookup1(H, T, {<<H, T/bits>>, Value}) ->
     Value.
 
 
@@ -74,7 +74,7 @@ insert_pattern1([Binary], _) when is_binary(Binary) ->
     {Binary, undefined};
 insert_pattern1([<<>> | Rest], Tree) ->
     insert_pattern1(Rest, Tree);
-insert_pattern1([<<H, T/binary>> | Rest], {NodeVal, Array, Patterns}) ->
+insert_pattern1([<<H, T/bits>> | Rest], {NodeVal, Array, Patterns}) ->
     SubTree = ensure_defined(array2:get(H, Array)),
     {NodeVal, array2:set(H, insert_pattern1([T | Rest], SubTree), Array), Patterns};
 insert_pattern1([Match | Rest], {NodeVal, Array, Patterns}) ->
@@ -84,7 +84,7 @@ insert_pattern1([Match | Rest], {NodeVal, Array, Patterns}) ->
 -spec lookup_match(key(), tree()) -> list({patterns:text(), term()}) | nomatch.
 lookup_match(Input, Tree) ->
     lookup_match1(Input, Tree, []).
-lookup_match1(<<H, T/binary>> = In, {_, Array, Patterns}, AccMatches) ->
+lookup_match1(<<H, T/bits>> = In, {_, Array, Patterns}, AccMatches) ->
     case array2:get(H, Array) of
         undefined when Patterns /= [] -> lookup_match_patterns(In, Patterns, AccMatches);
         undefined -> nomatch;
@@ -104,11 +104,10 @@ lookup_match_patterns(Input, [{Pattern, Tree} | Rest], AccMatches) ->
 lookup_match_patterns_loop(Input, Pattern, Tree, AccMatch) ->
     case patterns:match(Input, Pattern) of
         {Match, Rest} ->
+            Acc = <<AccMatch/bits, Match/bits>>,
             case lookup_match(Rest, Tree) of
-                nomatch ->
-                    <<First/utf8, Rest/bits>> = Input,
-                    lookup_match_patterns_loop(Rest, Pattern, Tree, <<AccMatch/binary, First/utf8>>);
-                Matches -> [{patterns:get_name(Pattern), patterns:convert(<<AccMatch/binary, Match/bits>>, Pattern)} | Matches]
+                nomatch -> lookup_match_patterns_loop(Rest, Pattern, Tree, Acc);
+                Matches -> [{patterns:get_name(Pattern), patterns:convert(Acc, Pattern)} | Matches]
             end;
         _ -> nomatch
     end.
