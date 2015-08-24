@@ -11,18 +11,18 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-define(RE_OPTS, [unicode]).
+
 %% API
--export([new/1, match/2, convert/2, get_name/1]).
--export_type([patterns/0, text/0]).
+-export([new/1, match/2, convert/2]).
+-export_type([patterns/0, pattern/0]).
 
--type patterns() :: list(pattern() | text()).
--type pattern() :: {PatternFun::fun((text()) -> match_result()), Name::binary()}.
--type match_result() :: {Match::char(), Rest::text()} | nomatch.
-
--type text() :: unicode:unicode_binary().
+-type patterns() :: list(pattern() | unicode:unicode_binary()).
+-type pattern() :: {re:mp(), Name::binary()}.
+-type match_result() :: {Match::unicode:unicode_binary(), Rest::unicode:unicode_binary(), Name::binary()} | nomatch.
 
 
--spec new(text()) -> patterns().
+-spec new(unicode:unicode_binary()) -> patterns().
 new(Bin) ->
 	RE = <<"(%{[A-Z0-9]+:[a-zA-Z0-9_]+})">>,
 	GroupedSplitList = re:split(Bin, RE, [{return, binary}, group, trim, unicode]),
@@ -41,48 +41,50 @@ do_ptl([[Binary, Regex] | T], Result) ->
 extract_re(Regex) ->
 	RE = <<"%{([A-Z0-9]+):([a-zA-Z0-9_]+)}">>,
 	{match, [Type, VarName]} = re:run(Regex, RE, [{capture, all_but_first, binary}]),
-	{binary_to_atom(Type, latin1), VarName}.
+    {create_re(Type), VarName}.
+
+create_re(<<"STRING">>) ->
+    {ok, Mp} = re:compile("\\p{Xan}+", ?RE_OPTS),
+    {string, Mp};
+create_re(<<"INT">>) ->
+    {ok, Mp} = re:compile("[[:digit:]]+", ?RE_OPTS),
+    {int, Mp};
+create_re(<<"EMAIL">>) ->
+    {ok, Mp} = re:compile("[.\\p{Xwd}]+@[.\\p{Xwd}]+", ?RE_OPTS),
+    {email, Mp};
+create_re(<<"BOOL">>) ->
+    {ok, Mp} = re:compile("true|false", ?RE_OPTS),
+    {bool, Mp};
+create_re(Regex) ->
+    {ok, Mp} = re:compile(Regex, ?RE_OPTS),
+    {unknown, Mp}.
 
 
--spec match(text(), pattern()) -> match_result().
-match(Input, {Type, _}) ->
-    match1(Type, Input).
-
-match1('STRING', <<First/utf8, Rest/bits>>) ->
-    {<<First>>, Rest};
-match1('INT', <<First, Rest/bits>>) when First >= 48, First =< 57 ->
-    {<<First>>, Rest};
-match1('BOOL', <<"false", Rest/bits>>) -> 
-    {<<"false">>, Rest};
-match1('BOOL', <<"true", Rest/bits>>) ->
-    {<<"true">>, Rest};
-match1(_, _) ->
-    nomatch.
+-spec match(unicode:unicode_binary(), pattern()) -> match_result().
+match(Input, {{_, Pattern}, Name}) ->
+    case re:run(Input, Pattern) of
+        {match, [{0, End}]} -> {binary:part(Input, 0, End), binary:part(Input, End, byte_size(Input) - End), Name};
+        _ -> nomatch
+    end.
 
 
--spec convert(text(), pattern()) -> term().
-convert(Match, {Type, _}) ->
-    convert1(Type, Match).
+-spec convert(unicode:unicode_binary(), pattern()) -> term().
+convert(Input, {{Type, _}, _}) ->
+    convert1(Type, Input).
 
-convert1('INT', Match) ->
-    binary_to_integer(Match);
-convert1('BOOL', <<"true">>) ->
-    true;
-convert1('BOOL', <<"false">>) ->
+convert1(int, Input) ->
+    binary_to_integer(Input);
+convert1(bool, <<"false">>) ->
     false;
-convert1(_, Match) ->
-    Match.
-
-
-
--spec get_name(pattern()) -> text().
-get_name({_, Name}) ->
-    Name.
+convert1(bool, <<"true">>) ->
+    true;
+convert1(_, Input) ->
+    Input.
 
 
 %% Tests
 ptl_test() ->
-	Expected = [{'STRING', <<"val1">>}, <<" hello sshd_">>, {'STRING', <<"val1">>}, {'STRING', <<"val1">>}, <<" who-ylo ">>, {'INT', <<"val2">>}, <<" hello">>],
+	Expected = [{create_re(<<"STRING">>), <<"val1">>}, <<" hello sshd_">>, {create_re(<<"STRING">>), <<"val1">>}, {create_re(<<"STRING">>), <<"val1">>}, <<" who-ylo ">>, {create_re(<<"INT">>), <<"val2">>}, <<" hello">>],
 	Result = new(<<"%{STRING:val1} hello sshd_%{STRING:val1}%{STRING:val1} who-ylo %{INT:val2} hello">>),
 	?assertEqual(Expected, Result),
-	?assertEqual([<<"ok ">>, {'INT', <<"id">>}], new(<<"ok %{INT:id}">>)).
+	?assertEqual([<<"ok ">>, {create_re(<<"INT">>), <<"id">>}], new(<<"ok %{INT:id}">>)).
