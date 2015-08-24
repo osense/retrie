@@ -92,13 +92,10 @@ lookup_match1(<<H, T/binary>> = In, {_, Array, Patterns}, AccMatches) ->
         undefined -> nomatch;
         Tree -> lookup_match1(T, Tree, AccMatches)
     end;
-lookup_match1(In, {NodeKey, _}, AccMatches) ->
-    if
-        In == NodeKey -> AccMatches;
-        true -> nomatch
-    end;
-lookup_match1(_, _, AccMatches) ->
-    AccMatches.
+lookup_match1(Input, {NodeKey, _}, AccMatches) when Input == NodeKey ->
+    AccMatches;
+lookup_match1(_, _, _) ->
+    nomatch.
 
 lookup_match_patterns(Input, [{Pattern, Tree} | Rest], AccMatches) ->
     case lookup_match_patterns_loop(Input, Pattern, Tree, <<>>) of
