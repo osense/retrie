@@ -62,8 +62,8 @@ insert_pattern(Binary, Tree) ->
     insert_pattern1(patterns:new(Binary), Tree).
 
 -spec insert_pattern1(patterns:patterns(), tree()) -> tree().
-insert_pattern1([], Tree) ->
-    Tree;
+insert_pattern1([], _) ->
+    {<<>>, undefined};
 insert_pattern1(P, {<<NH, NT/binary>>, NodeVal}) ->
     NewNode = {undefined, array2:set(NH, {NT, NodeVal}, array2:new()), []},
     insert_pattern1(P, NewNode);

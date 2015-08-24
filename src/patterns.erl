@@ -25,7 +25,7 @@
 -spec new(text()) -> patterns().
 new(Bin) ->
 	RE = <<"(%{[A-Z0-9]+:[a-zA-Z0-9_]+})">>,
-	GroupedSplitList = re:split(Bin, RE, [{return, binary}, group, unicode]),
+	GroupedSplitList = re:split(Bin, RE, [{return, binary}, group, trim, unicode]),
 	do_ptl(GroupedSplitList, []).
 
 
@@ -84,4 +84,5 @@ get_name({_, Name}) ->
 ptl_test() ->
 	Expected = [{'STRING', <<"val1">>}, <<" hello sshd_">>, {'STRING', <<"val1">>}, {'STRING', <<"val1">>}, <<" who-ylo ">>, {'INT', <<"val2">>}, <<" hello">>],
 	Result = new(<<"%{STRING:val1} hello sshd_%{STRING:val1}%{STRING:val1} who-ylo %{INT:val2} hello">>),
-	?assertEqual(Expected, Result).
+	?assertEqual(Expected, Result),
+	?assertEqual([<<"ok ">>, {'INT', <<"id">>}], new(<<"ok %{INT:id}">>)).
