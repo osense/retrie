@@ -11,14 +11,15 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--define(RE_OPTS, [unicode]).
+-define(RE_OPTS, []).
 
 %% API
 -export([new/1, match/2, convert/2]).
 -export_type([patterns/0, pattern/0]).
 
 -type patterns() :: list(pattern() | unicode:unicode_binary()).
--type pattern() :: {re:mp(), Name::binary()}.
+-type pattern() :: {{type(), Regex::any()}, Name::binary()}.
+-type type() :: string | int | bool | email.
 -type match_result() :: {Match::unicode:unicode_binary(), Rest::unicode:unicode_binary(), Name::binary()} | nomatch.
 
 
@@ -44,25 +45,25 @@ extract_re(Regex) ->
     {create_re(Type), VarName}.
 
 create_re(<<"STRING">>) ->
-    {ok, Mp} = re:compile("\\p{Xan}+", ?RE_OPTS),
+    {ok, Mp} = re2:compile("\\p{L}+", ?RE_OPTS),
     {string, Mp};
 create_re(<<"INT">>) ->
-    {ok, Mp} = re:compile("[[:digit:]]+", ?RE_OPTS),
+    {ok, Mp} = re2:compile("[[:digit:]]+", ?RE_OPTS),
     {int, Mp};
 create_re(<<"EMAIL">>) ->
-    {ok, Mp} = re:compile("[.\\p{Xwd}]+@[.\\p{Xwd}]+", ?RE_OPTS),
+    {ok, Mp} = re2:compile("[.\\p{Xwd}]+@[.\\p{Xwd}]+", ?RE_OPTS),
     {email, Mp};
 create_re(<<"BOOL">>) ->
-    {ok, Mp} = re:compile("true|false", ?RE_OPTS),
+    {ok, Mp} = re2:compile("true|false", ?RE_OPTS),
     {bool, Mp};
 create_re(Regex) ->
-    {ok, Mp} = re:compile(Regex, ?RE_OPTS),
+    {ok, Mp} = re2:compile(Regex, ?RE_OPTS),
     {unknown, Mp}.
 
 
 -spec match(unicode:unicode_binary(), pattern()) -> match_result().
 match(Input, {{_, Pattern}, Name}) ->
-    case re:run(Input, Pattern) of
+    case re2:match(Input, Pattern, [{capture, first, index}]) of
         {match, [{0, End}]} -> {binary:part(Input, 0, End), binary:part(Input, End, byte_size(Input) - End), Name};
         _ -> nomatch
     end.
