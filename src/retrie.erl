@@ -70,8 +70,6 @@ insert_pattern1(P, {<<NH, NT/binary>>, NodeVal}) ->
 insert_pattern1(P, {<<>>, NodeVal}) ->
     NewNode = {NodeVal, array2:new(), []},
     insert_pattern1(P, NewNode);
-insert_pattern1([Binary], _) when is_binary(Binary) ->
-    {Binary, undefined};
 insert_pattern1([<<>> | Rest], Tree) ->
     insert_pattern1(Rest, Tree);
 insert_pattern1([<<H, T/bits>> | Rest], {NodeVal, Array, Patterns}) ->
