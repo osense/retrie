@@ -1,6 +1,6 @@
 -module(retrie).
 
--export([new/0, insert_pattern/3, compile/1, lookup_match/2, lists_take/2]).
+-export([new/0, insert_pattern/3, compile/1, lookup_match/2]).
 
 -type tree() :: tree_node() | tree_leaf().
 -type tree_node() :: {value(), array2:array2(), [{patterns:pattern(), tree()}]}.
@@ -41,6 +41,7 @@ insert_pattern1([Pattern | Rest], Val, {NodeVal, Array, Patterns}) ->
     {NodeVal, Array, NewPatterns}.
 
 
+-spec compile(tree()) -> tree().
 compile({NodeVal, Array, Patterns}) ->
     {NodeVal,
      array2:map(fun compile/1, Array),
@@ -78,8 +79,7 @@ lookup_match_patterns(Input, [{Pattern, Tree} | RestPatterns]) ->
         {Match, Rest, Name} ->
             case lookup_match(Rest, Tree) of
                 nomatch -> lookup_match_patterns(Input, RestPatterns);
-                {Value, Matches} -> {Value, [{Name, patterns:convert(Match, Pattern)} | Matches]};
-                Matches -> [{Name, patterns:convert(Match, Pattern)} | Matches]
+                {Value, Matches} -> {Value, [{Name, patterns:convert(Match, Pattern)} | Matches]}
             end;
         _ -> lookup_match_patterns(Input, RestPatterns)
     end.
@@ -91,11 +91,3 @@ ensure_defined(undefined) ->
 ensure_defined(Tree) ->
     Tree.
 
-lists_take(Elem, L) ->
-    lists_take(Elem, L, []).
-lists_take(_, [], _) ->
-    false;
-lists_take(Elem, [Elem | Tail], Acc) ->
-    {Elem, Tail ++ Acc};
-lists_take(Elem, [Head | Tail], Acc) ->
-    lists_take(Elem, Tail, [Head | Acc]).

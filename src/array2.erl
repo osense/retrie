@@ -29,13 +29,14 @@ make_initlist(Start, Data) ->
     lists:zip(lists:seq(Start, Start + tuple_size(Data) - 1), tuple_to_list(Data)).
 
 
--spec get(idx(), array2()) -> term().
+-spec get(idx(), array2()) -> term() | ?DEFAULT_VAL.
 get(N, {Start, End, Data}) when N >= Start, N =< End ->
     element(N - Start + 1, Data);
 get(_, _) ->
     ?DEFAULT_VAL.
 
 
+-spec map(fun(), array2()) -> array2().
 map(F, {Start, End, Data}) ->
     Mapped = lists:map(fun
                            (?DEFAULT_VAL) -> ?DEFAULT_VAL;
