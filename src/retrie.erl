@@ -66,7 +66,7 @@ lookup_match(<<H, T/bits>> = In, {_, Array, Patterns}) ->
     end;
 lookup_match(Input, {NodeKey, NodeVal}) when Input == NodeKey ->
     {NodeVal, []};
-lookup_match(<<>>, {NodeVal, _, _}) ->
+lookup_match(<<>>, {NodeVal, _, _}) when NodeVal /= undefined ->
     {NodeVal, []};
 lookup_match(_, _) ->
     nomatch.

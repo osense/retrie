@@ -23,5 +23,6 @@ match_test() ->
     T4 = retrie:insert_pattern(<<"Hello %{STRING:name} %{BOOL:b} something">>, p4, T3),
     T41 = retrie:compile(T4),
     ?assertEqual({p3, [{<<"name">>, <<"Fôô"/utf8>>}, {<<"b">>, false}]}, retrie:lookup_match(<<"Hello Fôô false"/utf8>>, T41)),
+    ?assertEqual(nomatch, retrie:lookup_match(<<"Hello Fôô false some"/utf8>>, T41)),
     ?assertEqual({p4, [{<<"name">>, <<"Fôô"/utf8>>}, {<<"b">>, false}]}, retrie:lookup_match(<<"Hello Fôô false something"/utf8>>, T41)).
 
