@@ -1,7 +1,7 @@
 -module(array2).
 -author("osense").
 
--export([new/0, set/3, get/2, to_list/1, to_orddict/1]).
+-export([new/0, set/3, get/2, map/2, to_list/1, to_orddict/1]).
 -export_type([array2/0]).
 
 -define(DEFAULT_VAL, undefined).
@@ -34,6 +34,17 @@ get(N, {Start, End, Data}) when N >= Start, N =< End ->
     element(N - Start + 1, Data);
 get(_, _) ->
     ?DEFAULT_VAL.
+
+
+map(F, {Start, End, Data}) ->
+    Mapped = lists:map(fun
+                           (?DEFAULT_VAL) -> ?DEFAULT_VAL;
+                           (Elem) -> F(Elem)
+                       end,
+                       tuple_to_list(Data)),
+    {Start, End, list_to_tuple(Mapped)};
+map(_, {}) ->
+    {}.
 
 
 -spec to_list(array2()) -> list().
