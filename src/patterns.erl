@@ -14,7 +14,7 @@
 -define(RE_OPTS, []).
 
 %% API
--export([new/1, match/2, convert/2]).
+-export([new/1, compile/1, match/2, convert/2]).
 -export_type([patterns/0, pattern/0]).
 
 -type patterns() :: list(pattern() | unicode:unicode_binary()).
@@ -44,21 +44,20 @@ extract_re(Regex) ->
 	{match, [Type, VarName]} = re:run(Regex, RE, [{capture, all_but_first, binary}]),
     {create_re(Type), VarName}.
 
+
 create_re(<<"STRING">>) ->
-    {ok, Mp} = re2:compile("\\p{L}+", ?RE_OPTS),
-    {string, Mp};
+    {string, <<"\\p{L}+">>};
 create_re(<<"INT">>) ->
-    {ok, Mp} = re2:compile("[[:digit:]]+", ?RE_OPTS),
-    {int, Mp};
-create_re(<<"EMAIL">>) ->
-    {ok, Mp} = re2:compile("[.\\p{Xwd}]+@[.\\p{Xwd}]+", ?RE_OPTS),
-    {email, Mp};
+    {int, <<"[[:digit:]]+">>};
 create_re(<<"BOOL">>) ->
-    {ok, Mp} = re2:compile("true|false", ?RE_OPTS),
-    {bool, Mp};
+    {bool, <<"true|false">>};
 create_re(Regex) ->
-    {ok, Mp} = re2:compile(Regex, ?RE_OPTS),
-    {unknown, Mp}.
+    {unknown, Regex}.
+
+
+compile({{Type, Re}, Name}) ->
+    {ok, Mp} = re2:compile(Re, ?RE_OPTS),
+    {{Type, Mp}, Name}.
 
 
 -spec match(unicode:unicode_binary(), pattern()) -> match_result().
