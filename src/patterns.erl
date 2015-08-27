@@ -11,80 +11,107 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--define(RE_OPTS, []).
+-define(RE_COMPILE_OPTS, []).
+-define(RE_YAML_NAME, "regexes").
 
-%% API
--export([new/1, compile/1, match/2, convert/2]).
+
+%%% API
+-export([compile/1, compile/2, load/1, pattern_to_list/1, match/2, compare/2, convert/2]).
 -export_type([patterns/0, pattern/0]).
 
 -type patterns() :: list(pattern() | unicode:unicode_binary()).
--type pattern() :: {{type(), Regex::any()}, Name::binary()}.
--type type() :: string | int | bool | email.
+-type pattern() :: {{Priority::integer(), type(), Regex::any()}, Name::binary()}.
+-type type() :: string | integer | float | boolean.
 -type match_result() :: {Match::unicode:unicode_binary(), Rest::unicode:unicode_binary(), Name::binary()} | nomatch.
 
 
--spec new(unicode:unicode_binary()) -> patterns().
-new(Bin) ->
-	RE = <<"(%{[A-Z0-9]+:[a-zA-Z0-9_]+})">>,
-	GroupedSplitList = re:split(Bin, RE, [{return, binary}, group, trim, unicode]),
-	do_ptl(GroupedSplitList, []).
+-spec compile(string() | unicode:unicode_binary()) -> patterns().
+compile(Input) ->
+    compile(Input, create_regexes(default_regex_dict())).
 
+-spec compile(string() | unicode:unicode_binary(), map()) -> patterns().
+compile(Input, RegexBindings) ->
+    lists:map(fun
+                  ({RegexIdent, Name}) ->
+                     {maps:get(RegexIdent, RegexBindings), Name};
+                  (Binary) ->
+                     Binary
+             end, pattern_to_list(Input)).
+
+
+-spec load(file:name_all()) -> map().
+load(Filename) ->
+    ok = application:ensure_started(yamerl),
+    [Data] = yamerl_constr:file(Filename),
+    Patterns = maps:from_list(Data),
+    Regexes = create_regexes(maps:get(?RE_YAML_NAME, Patterns)),
+    maps:fold(fun(Name, PatternString, Acc) ->
+                      maps:put(list_to_binary(Name), compile(PatternString, Regexes), Acc)
+              end, #{}, maps:without([?RE_YAML_NAME], Patterns)).
+
+
+-spec pattern_to_list(string() | unicode:unicode_binary()) -> patterns().
+pattern_to_list(Bin) ->
+    RE = <<"(%{[A-Z0-9]+:[a-zA-Z0-9_]+})">>,
+    GroupedSplitList = re:split(Bin, RE, [{return, binary}, group, trim, unicode]),
+    do_ptl(GroupedSplitList, []).
 
 do_ptl([], Result) ->
-	lists:reverse(Result);
+    lists:reverse(Result);
 do_ptl([[Binary] | T], Result) ->
-	do_ptl(T, [Binary | Result]);
+    do_ptl(T, [Binary | Result]);
 do_ptl([[<<"">>, Regex] | T], Result) ->
-	do_ptl(T, [extract_re(Regex) | Result]);
+    do_ptl(T, [extract_re(Regex) | Result]);
 do_ptl([[Binary, Regex] | T], Result) ->
-	do_ptl(T, [extract_re(Regex), Binary | Result]).
+    do_ptl(T, [extract_re(Regex), Binary | Result]).
 
 extract_re(Regex) ->
-	RE = <<"%{([A-Z0-9]+):([a-zA-Z0-9_]+)}">>,
-	{match, [Type, VarName]} = re:run(Regex, RE, [{capture, all_but_first, binary}]),
-    {create_re(Type), VarName}.
-
-
-create_re(<<"STRING">>) ->
-    {string, <<"\\p{L}+">>};
-create_re(<<"INT">>) ->
-    {int, <<"[[:digit:]]+">>};
-create_re(<<"BOOL">>) ->
-    {bool, <<"true|false">>};
-create_re(Regex) ->
-    {unknown, Regex}.
-
-
-compile({{Type, Re}, Name}) ->
-    {ok, Mp} = re2:compile(Re, ?RE_OPTS),
-    {{Type, Mp}, Name}.
+    RE = <<"%{([A-Z0-9]+):([a-zA-Z0-9_]+)}">>,
+    {match, [Type, VarName]} = re:run(Regex, RE, [{capture, all_but_first, binary}]),
+    {Type, VarName}.
 
 
 -spec match(unicode:unicode_binary(), pattern()) -> match_result().
-match(Input, {{_, Pattern}, Name}) ->
+match(Input, {{_, _, Pattern}, Name}) ->
     case re2:match(Input, Pattern, [{capture, first, index}]) of
         {match, [{0, End}]} -> {binary:part(Input, 0, End), binary:part(Input, End, byte_size(Input) - End), Name};
         _ -> nomatch
     end.
 
 
+-spec compare(pattern(), pattern()) -> boolean().
+compare({{A, _, _}, _}, {{B, _, _}, _}) ->
+    A=< B.
+
+
 -spec convert(unicode:unicode_binary(), pattern()) -> term().
-convert(Input, {{Type, _}, _}) ->
+convert(Input, {{_, Type, _}, _}) ->
     convert1(Type, Input).
 
-convert1(int, Input) ->
+convert1(string, Input) ->
+    Input;
+convert1(integer, Input) ->
     binary_to_integer(Input);
-convert1(bool, <<"false">>) ->
-    false;
-convert1(bool, <<"true">>) ->
+convert1(float, Input) ->
+    binary_to_float(Input);
+convert1(boolean, <<"true">>) ->
     true;
-convert1(_, Input) ->
-    Input.
+convert1(boolean, <<"false">>) ->
+    false.
 
 
-%% Tests
-ptl_test() ->
-	Expected = [{create_re(<<"STRING">>), <<"val1">>}, <<" hello sshd_">>, {create_re(<<"STRING">>), <<"val1">>}, {create_re(<<"STRING">>), <<"val1">>}, <<" who-ylo ">>, {create_re(<<"INT">>), <<"val2">>}, <<" hello">>],
-	Result = new(<<"%{STRING:val1} hello sshd_%{STRING:val1}%{STRING:val1} who-ylo %{INT:val2} hello">>),
-	?assertEqual(Expected, Result),
-	?assertEqual([<<"ok ">>, {create_re(<<"INT">>), <<"id">>}], new(<<"ok %{INT:id}">>)).
+%%% Private functions.
+-spec create_regexes(list({RName::string(), Regex::list()})) -> map().
+create_regexes(Orddict) ->
+    {Res, _} = orddict:fold(fun(RName, [Type, Regex], {Acc, Priority}) ->
+                                    {ok, Mp} = re2:compile(Regex, ?RE_COMPILE_OPTS),
+                                    {maps:put(list_to_binary(RName), {Priority, list_to_atom(Type), Mp}, Acc),
+                                     Priority + 1}
+                            end, {#{}, 0}, Orddict),
+    Res.
+
+default_regex_dict() ->
+    [{"STRING", ["string", "(\\p{L}|[[:digit:]])+"]},
+     {"INT", ["integer", "[-+]?[[:digit:]]+"]},
+     {"FLOAT", ["float", "[-+]?([[:digit:]]\.)?[[digit]]+"]},
+     {"BOOL", ["boolean", "true|false"]}].

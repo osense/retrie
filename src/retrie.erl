@@ -1,6 +1,6 @@
 -module(retrie).
 
--export([new/0, insert_pattern/3, compile/1, lookup_match/2]).
+-export([new/0, from_yaml/1, insert_pattern/3, insert_compiled/3, lookup_match/2]).
 
 -type tree() :: tree_node() | tree_leaf().
 -type tree_node() :: {value(), array2:array2(), [{patterns:pattern(), tree()}]}.
@@ -15,39 +15,37 @@ new() ->
     {undefined, array2:new(), []}.
 
 
+-spec from_yaml(string()) -> tree().
+from_yaml(Filename) ->
+    maps:fold(fun(Name, Pattern, Acc) ->
+                      insert_compiled(Pattern, Name, Acc)
+              end, new(), patterns:load(Filename)).
+
+
 -spec insert_pattern(unicode:unicode_binary(), value(), tree()) -> tree().
 insert_pattern(Binary, Value, Tree) ->
-    insert_pattern1(patterns:new(Binary), Value, Tree).
+    insert_compiled(patterns:compile(Binary), Value, Tree).
 
--spec insert_pattern1(patterns:patterns(), value(), tree()) -> tree().
-insert_pattern1([], Val, _) ->
+-spec insert_compiled(patterns:patterns(), value(), tree()) -> tree().
+insert_compiled([], Val, _) ->
     {<<>>, Val};
-insert_pattern1(P, Val, {<<NH, NT/binary>>, NodeVal}) ->
+insert_compiled(P, Val, {<<NH, NT/binary>>, NodeVal}) ->
     NewNode = {undefined, array2:set(NH, {NT, NodeVal}, array2:new()), []},
-    insert_pattern1(P, Val, NewNode);
-insert_pattern1(P, Val, {<<>>, NodeVal}) ->
+    insert_compiled(P, Val, NewNode);
+insert_compiled(P, Val, {<<>>, NodeVal}) ->
     NewNode = {NodeVal, array2:new(), []},
-    insert_pattern1(P, Val, NewNode);
-insert_pattern1([<<>> | Rest], Val, Tree) ->
-    insert_pattern1(Rest, Val, Tree);
-insert_pattern1([<<H, T/bits>> | Rest], Val, {NodeVal, Array, Patterns}) ->
+    insert_compiled(P, Val, NewNode);
+insert_compiled([<<>> | Rest], Val, Tree) ->
+    insert_compiled(Rest, Val, Tree);
+insert_compiled([<<H, T/bits>> | Rest], Val, {NodeVal, Array, Patterns}) ->
     SubTree = ensure_defined(array2:get(H, Array)),
-    {NodeVal, array2:set(H, insert_pattern1([T | Rest], Val, SubTree), Array), Patterns};
-insert_pattern1([Pattern | Rest], Val, {NodeVal, Array, Patterns}) ->
+    {NodeVal, array2:set(H, insert_compiled([T | Rest], Val, SubTree), Array), Patterns};
+insert_compiled([Pattern | Rest], Val, {NodeVal, Array, Patterns}) ->
     NewPatterns = case lists:keytake(Pattern, 1, Patterns) of
-        false -> [{Pattern, insert_pattern1(Rest, Val, new())} | Patterns];
-        {value, {_Pattern, Tree}, Ps} -> [{Pattern, insert_pattern1(Rest, Val, Tree)} | Ps]
-    end,
-    {NodeVal, Array, NewPatterns}.
-
-
--spec compile(tree()) -> tree().
-compile({NodeVal, Array, Patterns}) ->
-    {NodeVal,
-     array2:map(fun compile/1, Array),
-     [{patterns:compile(P), compile(T)} || {P, T} <- Patterns]};
-compile(Leaf) ->
-    Leaf.
+                      false -> [{Pattern, insert_compiled(Rest, Val, new())} | Patterns];
+                      {value, {_Pattern, Tree}, Ps} -> [{Pattern, insert_compiled(Rest, Val, Tree)} | Ps]
+                  end,
+    {NodeVal, Array, lists:sort(fun({P1, _}, {P2, _}) -> patterns:compare(P1, P2) end, NewPatterns)}.
 
 
 -spec lookup_match(key(), tree()) -> {value(), [{binary(), term()}]} | nomatch.
@@ -90,4 +88,3 @@ ensure_defined(undefined) ->
     new();
 ensure_defined(Tree) ->
     Tree.
-
