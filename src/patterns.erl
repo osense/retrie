@@ -111,7 +111,7 @@ create_regexes(Orddict) ->
     Res.
 
 default_regex_dict() ->
-    [{"STRING", ["string", "(\\p{L}|[[:digit:]])+"]},
+    [{"STRING", ["string", "[\\p{L}0-9]+"]},
      {"INT", ["integer", "[-+]?[[:digit:]]+"]},
      {"FLOAT", ["float", "[-+]?([[:digit:]]\.)?[[digit]]+"]},
      {"BOOL", ["boolean", "true|false"]}].
