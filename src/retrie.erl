@@ -37,6 +37,11 @@ insert_compiled(P, Val, {<<>>, NodeVal}) ->
     insert_compiled(P, Val, NewNode);
 insert_compiled([<<>> | Rest], Val, Tree) ->
     insert_compiled(Rest, Val, Tree);
+insert_compiled([<<H, T/bits>>], Val, {NodeVal, Array, Patterns}) ->
+    case array2:get(H, Array) of
+        undefined -> {NodeVal, array2:set(H, {T, Val}, Array), Patterns};
+        Tree1 -> insert_compiled([T], Val, Tree1)
+    end;
 insert_compiled([<<H, T/bits>> | Rest], Val, {NodeVal, Array, Patterns}) ->
     SubTree = ensure_defined(array2:get(H, Array)),
     {NodeVal, array2:set(H, insert_compiled([T | Rest], Val, SubTree), Array), Patterns};
