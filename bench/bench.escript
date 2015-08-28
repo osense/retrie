@@ -47,9 +47,9 @@ bench_retrie() ->
     bench("3 patterns, 2 captures", fun() -> retrie:lookup_match(<<"Hi name, you are 34 years old.">>, T3) end, ?TRIALS),
 
     T4 = retrie:insert_pattern(<<"yeah id=%{INT:id} from=%{STRING:from}:%{INT:port}">>, p4, T3),
-    bench("4 patterns, 3 captures", fun() -> retrie:lookup_match(<<"yeah id=54 from=abcde 22">>, T4) end, ?TRIALS),
+    bench("4 patterns, 3 captures", fun() -> retrie:lookup_match(<<"yeah id=54 from=abcde:22">>, T4) end, ?TRIALS),
 
     T5 = retrie:insert_pattern(<<"Hello from %{STRING:name}">>, p5, T4),
     T6 = retrie:insert_pattern(<<"from=%{STRING:from} to=%{STRING:to} valid=%{BOOL:valid}">>, p6, T5),
-    T7 = retrie:insert_pattern(<<"%{STRING:from} says to %{STRING:to} %{STRING:msg}">>, p7, T6),
+    T7 = retrie:insert_pattern(<<"%{STRING:from} says to %{STRING:to}: %{STRING:msg}">>, p7, T6),
     bench("7 patterns, 3 captures", fun() -> retrie:lookup_match(<<"someone says to another: yeahyeah">>, T7) end, ?TRIALS).
