@@ -11,9 +11,11 @@
 
 
 main(_) ->
-    io:format("=  re  ==================================~n"),
+    io:format("=  re  ================================================~n"),
     bench_regex(),
-    io:format("=  retrie  ==============================~n"),
+    io:format("=  re (direct composition)  ===========================~n"),
+    bench_regex_comp(),
+    io:format("=  retrie  ============================================~n"),
     bench_retrie().
 
 
@@ -39,6 +41,27 @@ bench_regex() ->
     {ok, R7} = re:compile(<<"(?P<from>\\p{L}+) says to (?P<to>\\p{L}+): (?P<msg>\\p{L}+)">>),
     BenchF([R1, R2, R3, R4, R5, R6, R7], <<"someone says to another: yeahyeah">>, 3).
 
+bench_regex_comp() ->
+    {ok, R1} = re:compile(<<"(Hello, (?P<name1>\\p{L}+))|
+    |(Hey (?P<name2>\\p{L}+), hello!)
+    |(Hi (?P<name3>\\p{L}+), you are (?P<age3>[0-9]+) years old.)">>),
+    {ok, R2} = re:compile(<<"(Hello, (?P<name1>\\p{L}+))|
+    |(Hey (?P<name2>\\p{L}+), hello!)
+    |(Hi (?P<name3>\\p{L}+), you are (?P<age3>[0-9]+) years old.)
+    |(yeah id=(?P<id4>[0-9]+) from=(?P<from4>\\p{L}+) (?P<port4>[0-9]+))">>),
+    {ok, R3} = re:compile(<<"(Hello, (?P<name1>\\p{L}+))|
+    |(Hey (?P<name2>\\p{L}+), hello!)
+    |(Hi (?P<name3>\\p{L}+), you are (?P<age3>[0-9]+) years old.)
+    |(yeah id=(?P<id4>[0-9]+) from=(?P<from4>\\p{L}+) (?P<port4>[0-9]+))
+    |(Hello from (?P<name5>\\p{L}+))
+    |(from=(?P<from6>\\p{L}+) to=(?P<to6>\\p{L}+) valid=(?P<valid6>true|false))
+    |((?P<from7>\\p{L}+) says to (?P<to7>\\p{L}+): (?P<msg7>\\p{L}+))">>),
+    bench("3 patterns, 2 captures", fun() -> re:run(<<"Hi name, you are 4 years old.">>, R1, [{capture, all_names, binary}]) end, ?TRIALS),
+    bench("4 patterns, 3 captures", fun() -> re:run(<<"yeah id=54 from=abcde 22">>, R2, [{capture, all_names, binary}]) end, ?TRIALS),
+    bench("4 patterns, no match", fun() -> re:run(<<"yeeeah id=54 from=abcde 22">>, R2, [{capture, all_names, binary}]) end, ?TRIALS),
+    bench("7 patterns, 3 captures", fun() -> re:run(<<"someone says to another: yeahyeah">>, R3, [{capture, all_names, binary}]) end, ?TRIALS),
+    bench("7 patterns, no match", fun() -> re:run(<<"someone says ok yeah">>, R3, [{capture, all_names, binary}]) end, ?TRIALS).
+
 
 bench_retrie() ->
     T1 = retrie:insert_pattern(<<"Hello, %{STRING:name}!">>, p1, retrie:new()),
@@ -48,8 +71,10 @@ bench_retrie() ->
 
     T4 = retrie:insert_pattern(<<"yeah id=%{INT:id} from=%{STRING:from}:%{INT:port}">>, p4, T3),
     bench("4 patterns, 3 captures", fun() -> retrie:lookup_match(<<"yeah id=54 from=abcde:22">>, T4) end, ?TRIALS),
+    bench("4 patterns, no match", fun() -> retrie:lookup_match(<<"yeeeah id=54 from=abcde:22">>, T4) end, ?TRIALS),
 
     T5 = retrie:insert_pattern(<<"Hello from %{STRING:name}">>, p5, T4),
     T6 = retrie:insert_pattern(<<"from=%{STRING:from} to=%{STRING:to} valid=%{BOOL:valid}">>, p6, T5),
     T7 = retrie:insert_pattern(<<"%{STRING:from} says to %{STRING:to}: %{STRING:msg}">>, p7, T6),
-    bench("7 patterns, 3 captures", fun() -> retrie:lookup_match(<<"someone says to another: yeahyeah">>, T7) end, ?TRIALS).
+    bench("7 patterns, 3 captures", fun() -> retrie:lookup_match(<<"someone says to another: yeahyeah">>, T7) end, ?TRIALS),
+    bench("7 patterns, no match", fun() -> retrie:lookup_match(<<"someone says ok yeah">>, T7) end, ?TRIALS).
