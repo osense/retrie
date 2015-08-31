@@ -16,12 +16,12 @@ new() ->
 
 
 -spec set(idx(), term(), array2()) -> array2().
+set(N, Value, {Start, End, Data}) when N < Start ->
+    set(N, Value, {N, End, erlang:make_tuple(End - N + 1, ?DEFAULT_VAL, make_initlist(Start - N + 1, Data))});
+set(N, Value, {Start, End, Data}) when N > End ->
+    set(N, Value, {Start, N, erlang:make_tuple(N - Start + 1, ?DEFAULT_VAL, make_initlist(1, Data))});
 set(N, Value, {Start, End, Data}) ->
-    if
-        N < Start -> set(N, Value, {N, End, erlang:make_tuple(End - N + 1, ?DEFAULT_VAL, make_initlist(Start - N + 1, Data))});
-        N > End -> set(N, Value, {Start, N, erlang:make_tuple(N - Start + 1, ?DEFAULT_VAL, make_initlist(1, Data))});
-        true -> {Start, End, setelement(N - Start + 1, Data, Value)}
-    end;
+    {Start, End, setelement(N - Start + 1, Data, Value)};
 set(N, Value, {}) ->
     {N, N, {Value}}.
 
