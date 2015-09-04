@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 18. VIII 2015 10:38
 %%%-------------------------------------------------------------------
--module(patterns).
+-module(retrie_patterns).
 -author("xtovarn").
 
 -include_lib("eunit/include/eunit.hrl").
@@ -51,7 +51,7 @@ load(Filename) ->
                         Retrie = lists:foldl(fun({PatternName, Pattern}, AccTree) ->
                                                      retrie:insert_compiled(compile(Pattern, CompRegexes), list_to_binary(PatternName), AccTree)
                                              end, retrie:new(), PatternList),
-                        maps:put(list_to_atom(GroupName), Retrie, AccMap)
+                        maps:put(list_to_binary(GroupName), Retrie, AccMap)
                 end, maps:new(), Patterns).
 
 

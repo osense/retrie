@@ -3,7 +3,7 @@
 -export([new/0, insert_pattern/3, insert_compiled/3, lookup_match/2]).
 
 -type tree() :: tree_node() | tree_leaf().
--type tree_node() :: {value(), array2:array2(), [{patterns:pattern(), tree()}]}.
+-type tree_node() :: {value(), array2:array2(), [{retrie_patterns:pattern(), tree()}]}.
 -type tree_leaf() :: {key(), value()}.
 
 -type key() :: unicode:unicode_binary().
@@ -17,9 +17,9 @@ new() ->
 
 -spec insert_pattern(unicode:unicode_binary(), value(), tree()) -> tree().
 insert_pattern(Binary, Value, Tree) ->
-    insert_compiled(patterns:compile(Binary), Value, Tree).
+    insert_compiled(retrie_patterns:compile(Binary), Value, Tree).
 
--spec insert_compiled(patterns:patterns(), value(), tree()) -> tree().
+-spec insert_compiled(retrie_patterns:patterns(), value(), tree()) -> tree().
 insert_compiled([], Val, _) ->
     {<<>>, Val};
 insert_compiled(P, Val, {<<NH, NT/binary>>, NodeVal}) ->
@@ -43,7 +43,7 @@ insert_compiled([Pattern | Rest], Val, {NodeVal, Array, Patterns}) ->
                       false -> [{Pattern, insert_compiled(Rest, Val, new())} | Patterns];
                       {value, {_Pattern, Tree}, Ps} -> [{Pattern, insert_compiled(Rest, Val, Tree)} | Ps]
                   end,
-    {NodeVal, Array, lists:sort(fun({P1, _}, {P2, _}) -> patterns:compare(P1, P2) end, NewPatterns)}.
+    {NodeVal, Array, lists:sort(fun({P1, _}, {P2, _}) -> retrie_patterns:compare(P1, P2) end, NewPatterns)}.
 
 
 -spec lookup_match(key(), tree()) -> {value(), [{binary(), term()}]} | nomatch.
@@ -71,11 +71,11 @@ lookup_match(_, _) ->
 lookup_match_patterns(_, []) ->
     nomatch;
 lookup_match_patterns(Input, [{Pattern, Tree} | RestPatterns]) ->
-    case patterns:match(Input, Pattern) of
+    case retrie_patterns:match(Input, Pattern) of
         {Match, Rest, Name} ->
             case lookup_match(Rest, Tree) of
                 nomatch -> lookup_match_patterns(Input, RestPatterns);
-                {Value, Matches} -> {Value, [{Name, patterns:convert(Match, Pattern)} | Matches]}
+                {Value, Matches} -> {Value, [{Name, retrie_patterns:convert(Match, Pattern)} | Matches]}
             end;
         _ -> lookup_match_patterns(Input, RestPatterns)
     end.
