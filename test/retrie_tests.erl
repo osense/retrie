@@ -25,6 +25,11 @@ match_test() ->
     ?assertEqual(nomatch, retrie:lookup_match(<<"Hello Fôô false some"/utf8>>, T4)),
     ?assertEqual({p4, [{<<"name">>, <<"Fôô"/utf8>>}, {<<"b">>, false}]}, retrie:lookup_match(<<"Hello Fôô false something"/utf8>>, T4)).
 
+match_literal_test() ->
+    T1 = retrie:insert_pattern(<<"Hello A">>, a, retrie:new()),
+    T2 = retrie:insert_pattern(<<"Hello B">>, b, T1),
+    ?assertEqual({a, []}, retrie:lookup_match(<<"Hello A">>, T2)),
+    ?assertEqual({b, []}, retrie:lookup_match(<<"Hello B">>, T2)).
 
 priority_test() ->
     T1 = retrie:insert_pattern(<<"Hello, %{STRING:name}">>, p1, retrie:new()),
