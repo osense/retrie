@@ -12,7 +12,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -define(RE_COMPILE_OPTS, []).
--define(RE_YAML_NAME, "regexes").
+-define(YAML_REGEX_NAME, "regexes").
+-define(YAML_PATTERN_NAME, "patterns").
 
 
 %%% API
@@ -39,15 +40,19 @@ compile(Input, RegexBindings) ->
              end, pattern_to_list(Input)).
 
 
--spec load(file:name_all()) -> map().
+-spec load(file:name_all()) -> map(). %% Map of group_name => retrie.
 load(Filename) ->
     ok = application:ensure_started(yamerl),
     [Data] = yamerl_constr:file(Filename),
-    Patterns = maps:from_list(Data),
-    Regexes = create_regexes(maps:get(?RE_YAML_NAME, Patterns)),
-    maps:fold(fun(Name, PatternString, Acc) ->
-                      maps:put(list_to_binary(Name), compile(PatternString, Regexes), Acc)
-              end, #{}, maps:without([?RE_YAML_NAME], Patterns)).
+    {_, Patterns} = lists:keyfind(?YAML_PATTERN_NAME, 1, Data),
+    {_, Regexes} = lists:keyfind(?YAML_REGEX_NAME, 1, Data),
+    CompRegexes = create_regexes(Regexes),
+    lists:foldl(fun({GroupName, PatternList}, AccMap) ->
+                        Retrie = lists:foldl(fun({PatternName, Pattern}, AccTree) ->
+                                                     retrie:insert_compiled(compile(Pattern, CompRegexes), list_to_binary(PatternName), AccTree)
+                                             end, retrie:new(), PatternList),
+                        maps:put(list_to_atom(GroupName), Retrie, AccMap)
+                end, maps:new(), Patterns).
 
 
 -spec pattern_to_list(string() | unicode:unicode_binary()) -> patterns().

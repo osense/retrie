@@ -3,6 +3,8 @@ regexes:
   INT      : [integer, '[[:digit:]]+']
   BOOL     : [boolean, 'true|false']
 
-hello   : 'Hello, %{STRING:name}'
-from    : '%{STRING:msg} from %{STRING:from}:%{INT:port} is %{BOOL:valid}.'
+patterns:
+  test:
+    hello   : 'Hello, %{STRING:name}'
+    from    : '%{STRING:msg} from %{STRING:from}:%{INT:port} is %{BOOL:valid}.'
 

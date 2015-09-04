@@ -1,6 +1,6 @@
 -module(retrie).
 
--export([new/0, from_yaml/1, insert_pattern/3, insert_compiled/3, lookup_match/2]).
+-export([new/0, insert_pattern/3, insert_compiled/3, lookup_match/2]).
 
 -type tree() :: tree_node() | tree_leaf().
 -type tree_node() :: {value(), array2:array2(), [{patterns:pattern(), tree()}]}.
@@ -13,13 +13,6 @@
 -spec new() -> tree().
 new() ->
     {undefined, array2:new(), []}.
-
-
--spec from_yaml(string()) -> tree().
-from_yaml(Filename) ->
-    maps:fold(fun(Name, Pattern, Acc) ->
-                      insert_compiled(Pattern, Name, Acc)
-              end, new(), patterns:load(Filename)).
 
 
 -spec insert_pattern(unicode:unicode_binary(), value(), tree()) -> tree().
