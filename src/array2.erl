@@ -21,7 +21,7 @@ set(N, Value, {Start, End, Data}) when N < Start ->
 set(N, Value, {Start, End, Data}) when N > End ->
     set(N, Value, {Start, N, erlang:make_tuple(N - Start + 1, ?DEFAULT_VAL, make_initlist(1, Data))});
 set(N, Value, {Start, End, Data}) ->
-    {Start, End, setelement(N - Start + 1, Data, Value)};
+    {Start, End, erlang:setelement(N - Start + 1, Data, Value)};
 set(N, Value, {}) ->
     {N, N, {Value}}.
 
@@ -31,7 +31,7 @@ make_initlist(Start, Data) ->
 
 -spec get(idx(), array2()) -> term() | ?DEFAULT_VAL.
 get(N, {Start, End, Data}) when N >= Start, N =< End ->
-    element(N - Start + 1, Data);
+    erlang:element(N - Start + 1, Data);
 get(_, _) ->
     ?DEFAULT_VAL.
 
