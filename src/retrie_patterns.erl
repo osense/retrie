@@ -11,7 +11,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--define(RE_COMPILE_OPTS, []).
+-define(RE_COMPILE_OPTS, [unicode]).
 -define(YAML_REGEX_NAME, "regexes").
 -define(YAML_PATTERN_NAME, "patterns").
 
@@ -78,7 +78,7 @@ extract_re(Regex) ->
 
 -spec match(unicode:unicode_binary(), pattern()) -> match_result().
 match(Input, {{_, _, Pattern}, Name}) ->
-    case re2:match(Input, Pattern, [{capture, first, index}]) of
+    case re:run(Input, Pattern, [{capture, first, index}]) of
         {match, [{0, End}]} -> {binary:part(Input, 0, End), binary:part(Input, End, byte_size(Input) - End), Name};
         _ -> nomatch
     end.
@@ -109,7 +109,7 @@ convert1(boolean, <<"false">>) ->
 -spec create_regexes(list({RName::string(), Regex::list()})) -> map().
 create_regexes(Orddict) ->
     {Res, _} = orddict:fold(fun(RName, [Type, Regex], {Acc, Priority}) ->
-                                    {ok, Mp} = re2:compile(Regex, ?RE_COMPILE_OPTS),
+                                    {ok, Mp} = re:compile(Regex, ?RE_COMPILE_OPTS),
                                     {maps:put(list_to_binary(RName), {Priority, list_to_atom(Type), Mp}, Acc),
                                      Priority + 1}
                             end, {#{}, 0}, Orddict),
