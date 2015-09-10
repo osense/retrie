@@ -47,14 +47,10 @@ insert_compiled([Pattern | Rest], Val, {NodeVal, Array, Patterns}) ->
 
 
 -spec lookup_match(key(), tree()) -> {value(), [{binary(), term()}]} | nomatch.
-lookup_match(<<H, T/bits>>, {_, Array, []}) ->
-    case array2:get(H, Array) of
-        undefined -> nomatch;
-        Tree -> lookup_match(T, Tree)
-    end;
 lookup_match(<<H, T/bits>> = In, {_, Array, Patterns}) ->
     case array2:get(H, Array) of
         undefined -> lookup_match_patterns(In, Patterns);
+        Tree when Patterns == [] -> lookup_match(T, Tree);
         Tree ->
             case lookup_match(T, Tree) of
                 nomatch -> lookup_match_patterns(In, Patterns);
