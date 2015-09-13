@@ -4,7 +4,7 @@
 
 -type tree() :: tree_node() | tree_leaf().
 -type tree_node() :: {value(), array2:array2(), patterns()}.
--type tree_leaf() :: {leaf, key(), value(), patterns()}.
+-type tree_leaf() :: {chain, key(), value(), patterns()}.
 -type patterns() :: [{retrie_patterns:pattern(), tree()}].
 
 -type key() :: unicode:unicode_binary().
@@ -21,27 +21,26 @@ insert_pattern(Binary, Value, Tree) ->
     insert_compiled(retrie_patterns:compile(Binary), Value, Tree).
 
 -spec insert_compiled(retrie_patterns:patterns(), value(), tree()) -> tree().
-insert_compiled([], Val, {leaf, LeafKey, _, Patterns}) ->
-    {leaf, LeafKey, Val, Patterns};
+insert_compiled([], Val, {chain, LeafKey, _, Patterns}) ->
+    {chain, LeafKey, Val, Patterns};
 insert_compiled([], Val, {_, Array, Patterns}) ->
     {Val, Array, Patterns};
-insert_compiled([Binary | Rest], Val, {leaf, LeafKey, _, _} = Leaf) when Binary == LeafKey ->
-    io:format("~p; ~p~n", [Binary, LeafKey]),
+insert_compiled([Binary | Rest], Val, {chain, LeafKey, _, _} = Leaf) when Binary == LeafKey ->
     insert_compiled(Rest, Val, Leaf);
-insert_compiled([<<>> | Rest], Val, {leaf, <<LH, LT/bits>>, LeafVal, Patterns}) ->
-    NewNode = {undefined, array2:set(LH, {leaf, LT, LeafVal, Patterns}, array2:new()), []},
+insert_compiled([<<>> | Rest], Val, {chain, <<LH, LT/bits>>, LeafVal, Patterns}) ->
+    NewNode = {undefined, array2:set(LH, {chain, LT, LeafVal, Patterns}, array2:new()), []},
     insert_compiled(Rest, Val, NewNode);
 insert_compiled([<<>> | Rest], Val, Node) ->
     insert_compiled(Rest, Val, Node);
+insert_compiled([B | Rest], Val, {chain, <<LH, LT/bits>>, LeafVal, Patterns}) when is_binary(B) ->
+    NewNode = {undefined, array2:set(LH, {chain, LT, LeafVal, Patterns}, array2:new()), []},
+    insert_compiled([B | Rest], Val, NewNode);
 insert_compiled([<<H, T/bits>> | Rest], Val, {NodeVal, Array, Patterns}) ->
     NewTree = case array2:get(H, Array) of
-                  undefined  -> insert_compiled(Rest, Val, {leaf, T, undefined, []});
+                  undefined  -> insert_compiled(Rest, Val, {chain, T, undefined, []});
                   Tree -> insert_compiled([T | Rest], Val, Tree)
               end,
     {NodeVal, array2:set(H, NewTree, Array), Patterns};
-insert_compiled([B | Rest], Val, {leaf, <<LH, LT/bits>>, LeafVal, Patterns}) when is_binary(B) ->
-    NewNode = {undefined, array2:set(LH, {leaf, LT, LeafVal, Patterns}, array2:new()), []},
-    insert_compiled([B | Rest], Val, NewNode);
 insert_compiled([Pattern | Rest], Val, Tree) ->
     Patterns = get_patterns(Tree),
     NewPatterns = case lists:keytake(Pattern, 1, Patterns) of
@@ -63,7 +62,7 @@ lookup_match(<<H, T/bits>> = In, {_, Array, Patterns}) ->
                 Res -> Res
             end
     end;
-lookup_match(Input, {leaf, LeafKey, LeafVal, Patterns}) ->
+lookup_match(Input, {chain, LeafKey, LeafVal, Patterns}) ->
     LeafKeyLen = bit_size(LeafKey),
     case Input of
         LeafKey when LeafVal /= undefined -> {LeafVal, []};
@@ -99,5 +98,5 @@ get_patterns({_, _, _, Patterns}) ->
 -spec put_patterns(tree(), patterns()) -> tree().
 put_patterns(Patterns, {NodeVal, Array, _}) ->
     {NodeVal, Array, Patterns};
-put_patterns(Patterns, {leaf, LeafKey, LeafVal, _}) ->
-    {leaf, LeafKey, LeafVal, Patterns}.
+put_patterns(Patterns, {chain, LeafKey, LeafVal, _}) ->
+    {chain, LeafKey, LeafVal, Patterns}.
