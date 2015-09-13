@@ -7,7 +7,7 @@
 
 -include("bench.hrl").
 
--define(TRIALS, 1000000).
+-define(TRIALS, 100000).
 
 
 main(_) ->
