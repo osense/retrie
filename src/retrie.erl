@@ -21,13 +21,8 @@ insert_pattern(Binary, Value, Tree) ->
     insert_compiled(retrie_patterns:compile(Binary), Value, Tree).
 
 -spec insert_compiled(retrie_patterns:patterns(), value(), tree()) -> tree().
-insert_compiled([], Val, {Chain, {_, Array, Patterns}}) ->
-    {Chain, {Val, Array, Patterns}};
 insert_compiled([], Val, {_, Array, Patterns}) ->
     {Val, Array, Patterns};
-insert_compiled([<<>> | Rest], Val, {<<LH, LT/bits>>, NextNode}) ->
-    NewNode = {undefined, array2:set(LH, {LT, NextNode}, array2:new()), []},
-    insert_compiled(Rest, Val, NewNode);
 insert_compiled([Bin | Rest], Val, {Chain, NextNode}) when Bin == Chain ->
     {Chain, insert_compiled(Rest, Val, NextNode)};
 insert_compiled([Bin | Rest], Val, {Chain, NextNode}) when is_binary(Bin) ->
@@ -82,9 +77,7 @@ lookup_match(Input, {Chain, NextNode}) ->
         _ -> nomatch
     end;
 lookup_match(<<>>, {NodeVal, _, _}) when NodeVal /= undefined ->
-    {NodeVal, []};
-lookup_match(_, _) ->
-    nomatch.
+    {NodeVal, []}.
 
 lookup_match_patterns(_, []) ->
     nomatch;

@@ -29,7 +29,17 @@ match_literal_test() ->
     T1 = retrie:insert_pattern(<<"Hello A">>, a, retrie:new()),
     T2 = retrie:insert_pattern(<<"Hello B">>, b, T1),
     ?assertEqual({a, []}, retrie:lookup_match(<<"Hello A">>, T2)),
-    ?assertEqual({b, []}, retrie:lookup_match(<<"Hello B">>, T2)).
+    ?assertEqual({b, []}, retrie:lookup_match(<<"Hello B">>, T2)),
+    T3 = retrie:insert_pattern(<<"Hello World">>, c, T2),
+    ?assertEqual({a, []}, retrie:lookup_match(<<"Hello A">>, T3)),
+    ?assertEqual({b, []}, retrie:lookup_match(<<"Hello B">>, T3)),
+    ?assertEqual({c, []}, retrie:lookup_match(<<"Hello World">>, T3)),
+    T4 = retrie:insert_pattern(<<"Hell, no!">>, d, T3),
+    ?assertEqual({a, []}, retrie:lookup_match(<<"Hello A">>, T4)),
+    ?assertEqual({b, []}, retrie:lookup_match(<<"Hello B">>, T4)),
+    ?assertEqual({c, []}, retrie:lookup_match(<<"Hello World">>, T4)),
+    ?assertEqual({d, []}, retrie:lookup_match(<<"Hell, no!">>, T4)).
+
 
 priority_test() ->
     T1 = retrie:insert_pattern(<<"Hello, %{STRING:name}">>, p1, retrie:new()),
