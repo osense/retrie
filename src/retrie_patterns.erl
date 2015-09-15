@@ -17,13 +17,13 @@
 
 
 %%% API
--export([compile/1, compile/2, load/1, pattern_to_list/1, match/2, compare/2, convert/2]).
+-export([compile/1, compile/2, load/1, pattern_to_list/1, match/2, compare/2, convert/2, unicode_to_units/1]).
 -export_type([patterns/0, pattern/0]).
 
--type patterns() :: list(pattern() | unicode:unicode_binary()).
+-type patterns() :: list(pattern() | string()).
 -type pattern() :: {{Priority::integer(), type(), Regex::any()}, Name::binary()}.
 -type type() :: string | integer | float | boolean.
--type match_result() :: {Match::unicode:unicode_binary(), Rest::unicode:unicode_binary(), Name::binary()} | nomatch.
+-type match_result() :: {Match::string(), Rest::string(), Name::string()} | nomatch.
 
 
 -spec compile(string() | unicode:unicode_binary()) -> patterns().
@@ -35,8 +35,8 @@ compile(Input, RegexBindings) ->
     lists:map(fun
                   ({RegexIdent, Name}) ->
                      {maps:get(RegexIdent, RegexBindings), Name};
-                  (Binary) ->
-                     Binary
+                  (String) ->
+                     unicode_to_units(String)
              end, pattern_to_list(Input)).
 
 
@@ -49,44 +49,47 @@ load(Filename) ->
     CompRegexes = create_regexes(Regexes),
     lists:foldl(fun({GroupName, PatternList}, AccMap) ->
                         Retrie = lists:foldl(fun({PatternName, Pattern}, AccTree) ->
-                                                     retrie:insert_compiled(compile(Pattern, CompRegexes), list_to_binary(PatternName), AccTree)
+                                                     retrie:insert_compiled(compile(Pattern, CompRegexes), PatternName, AccTree)
                                              end, retrie:new(), PatternList),
-                        maps:put(list_to_binary(GroupName), Retrie, AccMap)
+                        maps:put(GroupName, Retrie, AccMap)
                 end, maps:new(), Patterns).
 
 
 -spec pattern_to_list(string() | unicode:unicode_binary()) -> patterns().
 pattern_to_list(Bin) ->
     RE = <<"(%{[A-Z0-9]+:[a-zA-Z0-9_]+})">>,
-    GroupedSplitList = re:split(Bin, RE, [{return, binary}, group, trim, unicode]),
+    GroupedSplitList = re:split(Bin, RE, [{return, list}, group, trim, unicode]),
     do_ptl(GroupedSplitList, []).
 
 do_ptl([], Result) ->
     lists:reverse(Result);
 do_ptl([[Binary] | T], Result) ->
     do_ptl(T, [Binary | Result]);
-do_ptl([[<<"">>, Regex] | T], Result) ->
+do_ptl([["", Regex] | T], Result) ->
     do_ptl(T, [extract_re(Regex) | Result]);
 do_ptl([[Binary, Regex] | T], Result) ->
     do_ptl(T, [extract_re(Regex), Binary | Result]).
 
 extract_re(Regex) ->
     RE = <<"%{([A-Z0-9]+):([a-zA-Z0-9_]+)}">>,
-    {match, [Type, VarName]} = re:run(Regex, RE, [{capture, all_but_first, binary}]),
+    {match, [Type, VarName]} = re:run(Regex, RE, [{capture, all_but_first, list}]),
     {Type, VarName}.
 
 
 -spec match(unicode:unicode_binary(), pattern()) -> match_result().
 match(Input, {{_, _, Pattern}, Name}) ->
-    case re:run(Input, Pattern, [{capture, first, index}]) of
-        {match, [{0, End}]} -> {binary:part(Input, 0, End), binary:part(Input, End, byte_size(Input) - End), Name};
+    In = unicode:characters_to_list(list_to_binary(Input)),
+    case re:run(In, Pattern, [{capture, first, index}]) of
+        {match, [{0, End}]} ->
+            {Match, Rest} = lists:split(End, Input),
+            {Match, Rest, Name};
         _ -> nomatch
     end.
 
 
 -spec compare(pattern(), pattern()) -> boolean().
 compare({{A, _, _}, _}, {{B, _, _}, _}) ->
-    A=< B.
+    A =< B.
 
 
 -spec convert(unicode:unicode_binary(), pattern()) -> term().
@@ -94,15 +97,23 @@ convert(Input, {{_, Type, _}, _}) ->
     convert1(Type, Input).
 
 convert1(string, Input) ->
-    Input;
+    unicode:characters_to_list(list_to_binary(Input));
 convert1(integer, Input) ->
-    binary_to_integer(Input);
+    list_to_integer(Input);
 convert1(float, Input) ->
-    binary_to_float(Input);
-convert1(boolean, <<"true">>) ->
+    list_to_float(Input);
+convert1(boolean, "true") ->
     true;
-convert1(boolean, <<"false">>) ->
+convert1(boolean, "false") ->
     false.
+
+
+unicode_to_units(<<>>) ->
+    [];
+unicode_to_units(<<H, T/binary>>) ->
+    [H | unicode_to_units(T)];
+unicode_to_units(List) when is_list(List) ->
+    unicode_to_units(unicode:characters_to_binary(List)).
 
 
 %%% Private functions.
@@ -110,7 +121,7 @@ convert1(boolean, <<"false">>) ->
 create_regexes(Orddict) ->
     {Res, _} = orddict:fold(fun(RName, [Type, Regex], {Acc, Priority}) ->
                                     {ok, Mp} = re:compile(Regex, ?RE_COMPILE_OPTS),
-                                    {maps:put(list_to_binary(RName), {Priority, list_to_atom(Type), Mp}, Acc),
+                                    {maps:put(RName, {Priority, list_to_atom(Type), Mp}, Acc),
                                      Priority + 1}
                             end, {#{}, 0}, Orddict),
     Res.
