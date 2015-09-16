@@ -17,7 +17,7 @@
 
 
 %%% API
--export([compile/1, compile/2, load/1, pattern_to_list/1, match/2, compare/2, convert/2, unicode_to_units/1]).
+-export([compile/1, compile/2, load_group/2, pattern_to_list/1, match/2, compare/2, convert/2, unicode_to_units/1]).
 -export_type([patterns/0, pattern/0]).
 
 -type patterns() :: list(pattern() | string()).
@@ -40,19 +40,17 @@ compile(Input, RegexBindings) ->
              end, pattern_to_list(Input)).
 
 
--spec load(file:name_all()) -> map(). %% Map of group_name => retrie.
-load(Filename) ->
+-spec load_group(file:name_all(), binary()) -> map(). %% Map of group_name => retrie.
+load_group(Filename, Groupname) ->
     ok = application:ensure_started(yamerl),
     [Data] = yamerl_constr:file(Filename),
     {_, Patterns} = lists:keyfind(?YAML_PATTERN_NAME, 1, Data),
+    {_, Group} = lists:keyfind(Groupname, 1, Patterns),
     {_, Regexes} = lists:keyfind(?YAML_REGEX_NAME, 1, Data),
     CompRegexes = create_regexes(Regexes),
-    lists:foldl(fun({GroupName, PatternList}, AccMap) ->
-                        Retrie = lists:foldl(fun({PatternName, Pattern}, AccTree) ->
-                                                     retrie:insert_compiled(compile(Pattern, CompRegexes), PatternName, AccTree)
-                                             end, retrie:new(), PatternList),
-                        maps:put(GroupName, Retrie, AccMap)
-                end, maps:new(), Patterns).
+    lists:foldl(fun({PatternName, Pattern}, AccTree) ->
+                        retrie:insert_compiled(compile(Pattern, CompRegexes), PatternName, AccTree)
+                end, retrie:new(), Group).
 
 
 -spec pattern_to_list(string() | unicode:unicode_binary()) -> patterns().
