@@ -59,26 +59,34 @@ insert_compiled([Pattern | Rest], Val, {NodeVal, Array, Patterns}) ->
 
 
 -spec lookup_match(key(), tree()) -> {value(), [{binary(), term()}]} | nomatch.
-lookup_match(Input, Tree) ->
-    lookup_match1(retrie_patterns:unicode_to_units(Input), Tree).
-
-lookup_match1([H | T] = In, {_, Array, Patterns}) ->
+lookup_match([H | T] = In, {_, Array, Patterns}) when H < 256 ->
     case array2:get(H, Array) of
         undefined -> lookup_match_patterns(In, Patterns);
-        Tree when Patterns == [] -> lookup_match1(T, Tree);
+        Tree when Patterns == [] -> lookup_match(T, Tree);
         Tree ->
-            case lookup_match1(T, Tree) of
+            case lookup_match(T, Tree) of
                 nomatch -> lookup_match_patterns(In, Patterns);
                 Res -> Res
             end
     end;
-lookup_match1([H | T], {[H | TChain], NextNode}) ->
-    lookup_match1(T, {TChain, NextNode});
-lookup_match1(Input, {"", NextNode}) ->
-    lookup_match1(Input, NextNode);
-lookup_match1("", {NodeVal, _, _}) when NodeVal /= undefined ->
+lookup_match([H | T] = In, {_, Array, Patterns}) ->  %% when H > 255
+    [U | Rest] = retrie_patterns:char_to_units(H),
+    case array2:get(U, Array) of
+        undefined -> lookup_match_patterns(In, Patterns);
+        Tree when Patterns == [] -> lookup_match(Rest ++ T, Tree);
+        Tree ->
+            case lookup_match(Rest ++ T, Tree) of
+                nomatch -> lookup_match_patterns(In, Patterns);
+                Res -> Res
+            end
+    end;
+lookup_match([H | T], {[H | TChain], NextNode}) ->
+    lookup_match(T, {TChain, NextNode});
+lookup_match(Input, {"", NextNode}) ->
+    lookup_match(Input, NextNode);
+lookup_match("", {NodeVal, _, _}) when NodeVal /= undefined ->
     {NodeVal, []};
-lookup_match1(_, _) ->
+lookup_match(_, _) ->
     nomatch.
 
 lookup_match_patterns(_, []) ->
@@ -86,7 +94,7 @@ lookup_match_patterns(_, []) ->
 lookup_match_patterns(Input, [{Pattern, Tree} | RestPatterns]) ->
     case retrie_patterns:match(Input, Pattern) of
         {Match, Rest, Name} ->
-            case lookup_match1(Rest, Tree) of
+            case lookup_match(Rest, Tree) of
                 nomatch -> lookup_match_patterns(Input, RestPatterns);
                 {Value, Matches} -> {Value, [{Name, retrie_patterns:convert(Match, Pattern)} | Matches]}
             end;

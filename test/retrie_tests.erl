@@ -16,14 +16,14 @@ match_test() ->
     T2 = retrie:insert_pattern("Hello %{STRING:name} id: %{INT:id}", p2, T1),
     ?assertEqual({p2, [{"name", "Foo"}, {"id", 34}]}, retrie:lookup_match("Hello Foo id: 34", T2)),
     T3 = retrie:insert_pattern("Hello %{STRING:name} %{BOOL:b}", p3, T2),
-    ?assertEqual({p3, [{"name", "Fôô"}, {"b", false}]}, retrie:lookup_match("Hello Fôô false", T3)),
+    ?assertEqual({p3, [{"name", "Fλλ"}, {"b", false}]}, retrie:lookup_match("Hello Fλλ false", T3)),
     ?assertEqual(nomatch, retrie:lookup_match("World, World!", T3)),
     ?assertEqual(nomatch, retrie:lookup_match("Hello Foo nobool", T3)),
 
     T4 = retrie:insert_pattern("Hello %{STRING:name} %{BOOL:b} something", p4, T3),
-    ?assertEqual({p3, [{"name", "Fôô"}, {"b", false}]}, retrie:lookup_match("Hello Fôô false", T4)),
-    ?assertEqual(nomatch, retrie:lookup_match("Hello Fôô false some", T4)),
-    ?assertEqual({p4, [{"name", "Fôô"}, {"b", false}]}, retrie:lookup_match("Hello Fôô false something", T4)).
+    ?assertEqual({p3, [{"name", "Fλλ"}, {"b", false}]}, retrie:lookup_match("Hello Fλλ false", T4)),
+    ?assertEqual(nomatch, retrie:lookup_match("Hello Fλλ false some", T4)),
+    ?assertEqual({p4, [{"name", "Fλλ"}, {"b", false}]}, retrie:lookup_match("Hello Fλλ false something", T4)).
 
 match_literal_test() ->
     T1 = retrie:insert_pattern("Hello A", a, retrie:new()),

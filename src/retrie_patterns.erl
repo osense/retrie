@@ -76,11 +76,9 @@ extract_re(Regex) ->
 
 -spec match(unicode:unicode_binary(), pattern()) -> match_result().
 match(Input, {{_, _, Pattern}, Name}) ->
-    In = unicode:characters_to_list(list_to_binary(Input)),
-    case re:run(In, Pattern, [{capture, first, index}]) of
-        {match, [{0, End}]} ->
-            {Match, Rest} = lists:split(End, Input),
-            {Match, Rest, Name};
+    case re:run(Input, Pattern, [{capture, first, list}]) of
+        {match, [Match]} ->
+            {Match, Input -- Match, Name};
         _ -> nomatch
     end.
 
@@ -95,7 +93,7 @@ convert(Input, {{_, Type, _}, _}) ->
     convert1(Type, Input).
 
 convert1(string, Input) ->
-    unicode:characters_to_list(list_to_binary(Input));
+    Input;
 convert1(integer, Input) ->
     list_to_integer(Input);
 convert1(float, Input) ->
@@ -106,12 +104,13 @@ convert1(boolean, "false") ->
     false.
 
 
-unicode_to_units(<<>>) ->
-    [];
-unicode_to_units(<<H, T/binary>>) ->
-    [H | unicode_to_units(T)];
+char_to_units(C) when C > 255 ->
+    binary_to_list(unicode:characters_to_binary([C]));
+char_to_units(C) ->
+    [C].
+
 unicode_to_units(List) when is_list(List) ->
-    unicode_to_units(unicode:characters_to_binary(List)).
+    lists:flatten(lists:map(fun char_to_units/1, List)).
 
 
 %%% Private functions.
