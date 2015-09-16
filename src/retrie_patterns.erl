@@ -45,7 +45,7 @@ load_group(Filename, Groupname) ->
     ok = application:ensure_started(yamerl),
     [Data] = yamerl_constr:file(Filename),
     {_, Patterns} = lists:keyfind(?YAML_PATTERN_NAME, 1, Data),
-    {_, Group} = lists:keyfind(Groupname, 1, Patterns),
+    {_, Group} = lists:keyfind(binary_to_list(Groupname), 1, Patterns),
     {_, Regexes} = lists:keyfind(?YAML_REGEX_NAME, 1, Data),
     CompRegexes = create_regexes(Regexes),
     lists:foldl(fun({PatternName, Pattern}, AccTree) ->
