@@ -17,7 +17,7 @@
 
 
 %%% API
--export([compile/1, compile/2, load_group/2, pattern_to_list/1, match/2, compare/2, convert/2]).
+-export([compile/1, compile/2, load_group/2, pattern_to_list/1, match/3, compare/2, convert/2]).
 -export_type([patterns/0, pattern/0]).
 
 -type patterns() :: list(pattern() | unicode:unicode_binary()).
@@ -74,10 +74,10 @@ extract_re(Regex) ->
     {Type, VarName}.
 
 
--spec match(unicode:unicode_binary(), pattern()) -> match_result().
-match(Input, {{_, _, Pattern}, Name}) ->
-    case re:run(Input, Pattern, [{capture, first, index}]) of
-        {match, [{0, End}]} -> {binary:part(Input, 0, End), binary:part(Input, End, byte_size(Input) - End), Name};
+-spec match(unicode:unicode_binary(), non_neg_integer(), pattern()) -> match_result().
+match(Input, N, {{_, _, Pattern}, Name}) ->
+    case re:run(Input, Pattern, [{capture, first, index}, {offset, N}]) of
+        {match, [{N, Length}]} -> {binary:part(Input, N, Length), N + Length, Name};
         _ -> nomatch
     end.
 

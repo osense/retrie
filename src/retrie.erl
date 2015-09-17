@@ -60,34 +60,37 @@ insert_compiled([Pattern | Rest], Val, {NodeVal, Array, Patterns}) ->
 
 
 -spec lookup_match(key(), tree()) -> {value(), [{binary(), term()}]} | nomatch.
-lookup_match(<<H, T/bits>> = In, {_, Array, Patterns}) ->
-    case array2:get(H, Array) of
-        undefined -> lookup_match_patterns(In, Patterns);
-        Tree when Patterns == [] -> lookup_match(T, Tree);
+lookup_match(Input, Tree) ->
+    lookup_match1(Input, 0, Tree).
+
+lookup_match1(Binary, N, {_, Array, Patterns}) when N < byte_size(Binary) ->
+    case array2:get(binary:at(Binary, N), Array) of
+        undefined -> lookup_match_patterns(Binary, N, Patterns);
+        Tree when Patterns == [] -> lookup_match1(Binary, N+1, Tree);
         Tree ->
-            case lookup_match(T, Tree) of
-                nomatch -> lookup_match_patterns(In, Patterns);
+            case lookup_match1(Binary, N+1, Tree) of
+                nomatch -> lookup_match_patterns(Binary, N, Patterns);
                 Res -> Res
             end
     end;
-lookup_match(Input, {Chain, NextNode}) ->
-    ChainLen = bit_size(Chain),
-    case Input of
-        <<Chain:ChainLen/bits, Rest/bits>> -> lookup_match(Rest, NextNode);
+lookup_match1(Binary, N, {Chain, NextNode}) ->
+    ChainLen = byte_size(Chain),
+    case Binary of
+        <<_:N/binary, Chain:ChainLen/binary, _/binary>> -> lookup_match1(Binary, N + ChainLen, NextNode);
         _ -> nomatch
     end;
-lookup_match(<<>>, {NodeVal, _, _}) when NodeVal /= undefined ->
+lookup_match1(Binary, N, {NodeVal, _, _}) when byte_size(Binary) == N, NodeVal /= undefined ->
     {NodeVal, []}.
 
-lookup_match_patterns(_, []) ->
+lookup_match_patterns(_, _, []) ->
     nomatch;
-lookup_match_patterns(Input, [{Pattern, Tree} | RestPatterns]) ->
-    case retrie_patterns:match(Input, Pattern) of
-        {Match, Rest, Name} ->
-            case lookup_match(Rest, Tree) of
-                nomatch -> lookup_match_patterns(Input, RestPatterns);
+lookup_match_patterns(Binary, N, [{Pattern, Tree} | RestPatterns]) ->
+    case retrie_patterns:match(Binary, N, Pattern) of
+        {Match, NewN, Name} ->
+            case lookup_match1(Binary, NewN, Tree) of
+                nomatch -> lookup_match_patterns(Binary, N, RestPatterns);
                 {Value, Matches} -> {Value, [{Name, retrie_patterns:convert(Match, Pattern)} | Matches]}
             end;
-        _ -> lookup_match_patterns(Input, RestPatterns)
+        _ -> lookup_match_patterns(Binary, N, RestPatterns)
     end.
 
