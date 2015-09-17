@@ -74,10 +74,9 @@ lookup_match1(Binary, N, {_, Array, Patterns}) when N < byte_size(Binary) ->
             end
     end;
 lookup_match1(Binary, N, {Chain, NextNode}) ->
-    BN = N*8,
-    ChainLen = bit_size(Chain),
+    ChainLen = byte_size(Chain),
     case Binary of
-        <<_:BN/bits, Chain:ChainLen/bits, _/bits>> -> lookup_match1(Binary, N + (ChainLen div 8), NextNode);
+        <<_:N/binary, Chain:ChainLen/binary, _/binary>> -> lookup_match1(Binary, N + ChainLen, NextNode);
         _ -> nomatch
     end;
 lookup_match1(Binary, N, {NodeVal, _, _}) when byte_size(Binary) == N, NodeVal /= undefined ->
