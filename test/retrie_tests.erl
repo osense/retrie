@@ -28,6 +28,7 @@ match_test() ->
 match_literal_test() ->
     T1 = retrie:insert_pattern(<<"Hello A">>, a, retrie:new()),
     T2 = retrie:insert_pattern(<<"Hello B">>, b, T1),
+    ?assertEqual(nomatch, retrie:lookup_match(<<>>, T2)),
     ?assertEqual({a, []}, retrie:lookup_match(<<"Hello A">>, T2)),
     ?assertEqual({b, []}, retrie:lookup_match(<<"Hello B">>, T2)),
     T3 = retrie:insert_pattern(<<"Hello World">>, c, T2),

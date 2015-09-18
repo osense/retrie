@@ -81,7 +81,9 @@ lookup_match1(Binary, N, {Chain, NextNode}) ->
         _ -> nomatch
     end;
 lookup_match1(Binary, N, {NodeVal, _, _}) when byte_size(Binary) == N, NodeVal /= undefined ->
-    {NodeVal, []}.
+    {NodeVal, []};
+lookup_match1(_, _, _) ->
+    nomatch.
 
 lookup_match_patterns(_, _, []) ->
     nomatch;
