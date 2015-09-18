@@ -1,6 +1,7 @@
 -module(retrie).
 
 -export([new/0, insert_pattern/3, insert_compiled/3, lookup_match/2]).
+-export_type([tree/0]).
 
 -type tree() :: tree_node() | tree_chain().
 -type tree_node() :: {value(), array2:array2(), patterns()}.

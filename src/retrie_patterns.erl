@@ -9,8 +9,6 @@
 -module(retrie_patterns).
 -author("xtovarn").
 
--include_lib("eunit/include/eunit.hrl").
-
 -define(RE_COMPILE_OPTS, [unicode]).
 -define(YAML_REGEX_NAME, "regexes").
 -define(YAML_PATTERN_NAME, "patterns").
@@ -40,7 +38,7 @@ compile(Input, RegexBindings) ->
              end, pattern_to_list(Input)).
 
 
--spec load_group(file:name_all(), binary()) -> map(). %% Map of group_name => retrie.
+-spec load_group(file:name_all(), binary()) -> retrie:tree().
 load_group(Filename, Groupname) ->
     ok = application:ensure_started(yamerl),
     [Data] = yamerl_constr:file(Filename),
