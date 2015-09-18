@@ -9,7 +9,7 @@
 -module(retrie_patterns).
 -author("xtovarn").
 
--define(RE_COMPILE_OPTS, [unicode]).
+-define(RE_COMPILE_OPTS, []).
 -define(YAML_REGEX_NAME, "regexes").
 -define(YAML_PATTERN_NAME, "patterns").
 
@@ -74,7 +74,7 @@ extract_re(Regex) ->
 
 -spec match(unicode:unicode_binary(), non_neg_integer(), pattern()) -> match_result().
 match(Input, N, {{_, _, Pattern}, Name}) ->
-    case re:run(Input, Pattern, [{capture, first, index}, {offset, N}]) of
+    case re2:match(Input, Pattern, [{capture, first, index}, {offset, N}]) of
         {match, [{N, Length}]} -> {binary:part(Input, N, Length), N + Length, Name};
         _ -> nomatch
     end.
@@ -105,7 +105,7 @@ convert1(boolean, <<"false">>) ->
 -spec create_regexes(list({RName::string(), Regex::list()})) -> map().
 create_regexes(Orddict) ->
     {Res, _} = orddict:fold(fun(RName, [Type, Regex], {Acc, Priority}) ->
-                                    {ok, Mp} = re:compile(Regex, ?RE_COMPILE_OPTS),
+                                    {ok, Mp} = re2:compile(Regex, ?RE_COMPILE_OPTS),
                                     {maps:put(list_to_binary(RName), {Priority, list_to_atom(Type), Mp}, Acc),
                                      Priority + 1}
                             end, {#{}, 0}, Orddict),
