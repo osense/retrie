@@ -1,4 +1,4 @@
--module(array2).
+-module(retrie_array2).
 -author("osense").
 
 -export([new/0, set/3, get/2, map/2, to_list/1, to_orddict/1]).

@@ -1,4 +1,4 @@
--module(trie).
+-module(retrie_trie).
 
 -export([new/0, insert/3, lookup/2]).
 
